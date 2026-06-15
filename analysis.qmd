@@ -1,0 +1,43 @@
+---
+title: "Colleges"
+author: "Var Kurapati"
+format: html
+execute:
+  echo: false
+---
+
+```{r}
+#| message: false
+library(tidyverse)
+library(primer.data)
+```
+
+```{r}
+colleges |>
+  ggplot(aes(x = tuition, y = grad_rate)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth() +
+  labs(
+    title = "Graduation Rate vs. Tuition Across U.S. Four-Year Colleges",
+    subtitle = "Higher tuition is associated with higher six-year graduation rates",
+    x = "Tuition (in $10,000s)",
+    y = "Six-Year Graduation Rate",
+    caption = "Source: 2013 IPEDS snapshot via primer.data::colleges"
+  )
+```
+
+```{r}
+#| cache: true
+x <- colleges |>
+  select(tuition, grad_rate, selectivity) |>
+  filter(tuition > 2) |>
+  drop_na() |>
+  mutate(selectivity = factor(selectivity, 
+                               levels = c("Elite", "Highly Selective", 
+                                          "Moderately Selective", "Lowly Selective", 
+                                          "Non-selective")))
+```
+
+Graduation rates vary substantially across U.S. colleges, with tuition cost being one factor associated with how likely students are to complete their degree within six years. Using a 2013 snapshot from the Department of Education's Integrated Postsecondary Education Data System (IPEDS), available through the colleges tibble in the primer.data package, we examine the difference in expected graduation rates between colleges charging $20,000 and $30,000 in annual tuition.
+
+
