@@ -10,22 +10,9 @@ execute:
 #| message: false
 library(tidyverse)
 library(primer.data)
-library(broom)
 library(tidymodels)
-```
-
-```{r}
-colleges |>
-  ggplot(aes(x = tuition, y = grad_rate)) +
-  geom_point(alpha = 0.4) +
-  geom_smooth() +
-  labs(
-    title = "Graduation Rate vs. Tuition Across U.S. Four-Year Colleges",
-    subtitle = "Higher tuition is associated with higher six-year graduation rates",
-    x = "Tuition (in $10,000s)",
-    y = "Six-Year Graduation Rate",
-    caption = "Source: 2013 IPEDS snapshot via primer.data::colleges"
-  )
+library(broom)
+library(marginaleffects)
 ```
 
 ```{r}
@@ -40,20 +27,29 @@ x <- colleges |>
                                           "Non-selective")))
 ```
 
-Graduation rates vary substantially across U.S. colleges, with tuition cost being one factor associated with how likely students are to complete their degree within six years. Using a 2013 snapshot from the Department of Education's Integrated Postsecondary Education Data System (IPEDS), available through the colleges tibble in the primer.data package, we examine the difference in expected graduation rates between colleges charging $20,000 and $30,000 in annual tuition. However, since our data comes from a 2013 snapshot while the colleges we're advising students about exist in 2026, the relationship between tuition and graduation rate may have shifted in ways our model cannot capture. We model grad_rate, the six-year graduation rate, as a linear function of tuition and selectivity, allowing each selectivity tier to have its own intercept relative to Elite colleges.
-
-```{r}
-linear_reg(engine = "lm") |> fit(grad_rate ~ tuition + selectivity, data = x)
-```
-
 ```{r}
 #| cache: true
 fit_colleges <- linear_reg() |> set_engine("lm") |> fit(grad_rate ~ tuition + selectivity, data = x)
 ```
 
 ```{r}
-tidy(fit_colleges, conf.int = TRUE)
+plot_predictions(fit_colleges, condition = c("tuition", "selectivity"), draw = FALSE) |>
+  ggplot(aes(x = tuition, y = estimate, color = selectivity)) +
+  geom_line(linewidth = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = selectivity), alpha = 0.1, color = NA) +
+  labs(
+    title = "Predicted Graduation Rate by Tuition and Selectivity",
+    subtitle = "Higher tuition is associated with higher graduation rates within every selectivity tier",
+    x = "Tuition (in $10,000s)",
+    y = "Predicted Six-Year Graduation Rate",
+    color = "Selectivity",
+    fill = "Selectivity",
+    caption = "Source: 2013 IPEDS snapshot via primer.data::colleges"
+  )
 ```
+
+Graduation rates vary substantially across U.S. colleges, with tuition cost being one factor associated with how likely students are to complete their degree within six years. Using a 2013 snapshot from the Department of Education's Integrated Postsecondary Education Data System (IPEDS), available through the colleges tibble in the primer.data package, we examine the difference in expected graduation rates between colleges charging $20,000 and $30,000 in annual tuition. However, since our data comes from a 2013 snapshot while the colleges we're advising students about exist in 2026, the relationship between tuition and graduation rate may have shifted in ways our model cannot capture. We model grad_rate, the six-year graduation rate, as a linear function of tuition and selectivity, allowing each selectivity tier to have its own intercept relative to Elite colleges. We estimate that, holding selectivity tier constant, colleges charging $30,000 in tuition have an expected graduation rate about 9 percentage points higher than colleges charging $20,000 (95% CI: 7.4–10.6 percentage points). Our estimates may be wrong for several reasons. First, our data comes from 2013, while the Preceptor Table refers to 2026 — over 13 years, the relationship between tuition and graduation rate may have shifted due to changes in financial aid policy, the rise of online education, and broader economic trends. Second, dropping colleges with missing values may have introduced bias if those institutions differ systematically from the ones retained in our sample. Third, the model's fitted values cluster more tightly than the actual graduation rates, meaning it likely understates uncertainty at the extremes. Very high and very low graduation rate colleges may be predicted less accurately than the confidence intervals suggest. Finally, tuition is sticker price, not what students actually pay after financial aid, so the true relationship between affordability and graduation outcomes may differ from what this model captures.
+
 
 
 
